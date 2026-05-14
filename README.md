@@ -1,4 +1,4 @@
-# StripJOP
+
 benchmarking suite cum CRA Detection System
 
 - Benchmarked 5 Linux tracing mechanisms (ptrace, eBPF, perf, strace, objdump) across recall and overhead — static disassembly ranked highest efficiency.
