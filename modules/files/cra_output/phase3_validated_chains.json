@@ -1,0 +1,36 @@
+{
+  "phase": 3,
+  "binary": "/home/rave/opt/proj/jop/modules/vuln-code/stack_bof",
+  "generated_at": "2026-06-16T05:11:03.444232Z",
+  "validation_tools": {
+    "frida": true,
+    "pwntools": true,
+    "ropper": false,
+    "angr": false
+  },
+  "runtime_info": {
+    "aslr_level": 2,
+    "pie_binary": false,
+    "stack_canary": false,
+    "nx_enabled": true,
+    "full_relro": false,
+    "partial_relro": false,
+    "cet_ibt": false,
+    "cet_shstk": false,
+    "write_primitive": "WRITABLE_GOT",
+    "controlled_offset": null,
+    "controlled_registers": [],
+    "phase0_vuln_id": "SP001",
+    "requires_aslr_leak": false
+  },
+  "validation_summary": {
+    "CONFIRMED": 0,
+    "PROBABLE": 0,
+    "UNLIKELY": 0,
+    "BLOCKED": 0
+  },
+  "best_chain_id": "",
+  "best_confidence": 0.0,
+  "payload_sketch": "",
+  "validated_chains": []
+}

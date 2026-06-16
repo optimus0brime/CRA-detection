@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRA · Pipeline Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/14.1.0/markdown-it.min.js"></script>
+<style>
+/* ── Reset + tokens ───────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070D1A;--surface:#0B1527;--card:#0F1E34;--card2:#122338;--border:#1A2D47;--bhi:#243D5E;
+  --high:#FF3355;--medium:#F59E0B;--low:#475569;--info:#38BDF8;
+  --conf:#00D68F;--prob:#38BDF8;--unlik:#64748B;--block:#A78BFA;
+  --accent:#38BDF8;--txt:#C8D8EA;--tdim:#5A7490;--thi:#F1F5F9;
+  --mono:"JetBrains Mono",monospace;--sans:"Inter",system-ui,sans-serif;
+  --r:6px;--r2:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.5}
+*{scrollbar-width:thin;scrollbar-color:var(--bhi) transparent}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--bhi);border-radius:99px}
+code,pre{font-family:var(--mono)}
+
+/* ── Topbar ───────────────────────────────────────────────────────────── */
+.topbar{position:sticky;top:0;z-index:200;height:50px;
+  background:rgba(7,13,26,.95);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:12px}
+.brand{font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:3px;color:var(--tdim);text-transform:uppercase;flex-shrink:0}
+.brand-sub{font-size:11px;color:var(--tdim);flex-shrink:0}
+.topbar-dir{flex:1;font-family:var(--mono);font-size:11px;color:var(--tdim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.topbar-dir span{color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#475569}
+.status-dot.ok{background:var(--conf)}
+.status-dot.warn{background:var(--medium)}
+.phase-count{font-family:var(--mono);font-size:11px;color:var(--tdim)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
+  border-radius:var(--r);border:1px solid var(--bhi);background:var(--card2);
+  color:var(--thi);font-size:12px;font-family:var(--sans);font-weight:500;
+  cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--border);border-color:var(--accent);color:var(--accent)}
+
+/* ── Tab nav ──────────────────────────────────────────────────────────── */
+.tabnav{display:flex;align-items:center;gap:2px;padding:0 18px;
+  border-bottom:1px solid var(--border);background:var(--surface);
+  overflow-x:auto;flex-shrink:0}
+.tabnav::-webkit-scrollbar{height:3px}
+.tab{padding:10px 14px;font-size:12px;font-weight:500;font-family:var(--mono);
+  letter-spacing:.5px;color:var(--tdim);border-bottom:2px solid transparent;
+  cursor:pointer;white-space:nowrap;transition:all .15s;user-select:none}
+.tab:hover{color:var(--txt)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab .badge{display:inline-flex;align-items:center;justify-content:center;
+  min-width:16px;height:16px;padding:0 4px;border-radius:99px;
+  font-size:9px;font-weight:700;margin-left:5px;font-family:var(--mono)}
+.b-red{background:rgba(255,51,85,.2);color:var(--high)}
+.b-green{background:rgba(0,214,143,.2);color:var(--conf)}
+.b-blue{background:rgba(56,189,248,.2);color:var(--accent)}
+.b-gray{background:rgba(71,85,105,.2);color:#94A3B8}
+
+/* ── Main layout ──────────────────────────────────────────────────────── */
+.main{flex:1;overflow-y:auto;padding:14px 18px 24px}
+.page{display:none}.page.active{display:block}
+
+/* ── Shared cards ─────────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:15px 17px}
+.card-title{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  color:var(--tdim);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.vstack{display:flex;flex-direction:column;gap:12px}
+.hstack{display:flex;gap:12px}
+
+/* ── Stat tiles ───────────────────────────────────────────────────────── */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);
+  padding:14px 17px;display:flex;flex-direction:column;gap:4px}
+.stat-val{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--thi);line-height:1.1}
+.stat-lbl{font-size:10px;color:var(--tdim);text-transform:uppercase;letter-spacing:1.5px}
+.stat-sub{font-family:var(--mono);font-size:11px;color:var(--tdim)}
+
+/* ── Tables ───────────────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r2)}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;z-index:2;background:var(--card);border-bottom:1px solid var(--border)}
+th{padding:7px 11px;text-align:left;font-size:10px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--tdim);
+  white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--txt)}
+th.sorted{color:var(--accent)}
+td{padding:7px 11px;border-bottom:1px solid rgba(26,45,71,.5);
+  font-size:12px;vertical-align:middle}
+tbody tr{transition:background .1s;cursor:pointer}
+tbody tr:hover{background:rgba(56,189,248,.04)}
+tbody tr:last-child td{border-bottom:none}
+.mono{font-family:var(--mono)}
+.dim{color:var(--tdim)}
+
+/* ── Pill badges ──────────────────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.p-crit{background:rgba(255,51,85,.15);  color:var(--high);  border:1px solid rgba(255,51,85,.25)}
+.p-high{background:rgba(255,110,60,.12); color:#FF6B3D;      border:1px solid rgba(255,110,60,.2)}
+.p-med {background:rgba(245,158,11,.15); color:var(--medium);border:1px solid rgba(245,158,11,.25)}
+.p-low {background:rgba(71,85,105,.2);   color:#94A3B8;      border:1px solid rgba(71,85,105,.3)}
+.p-conf{background:rgba(0,214,143,.12);  color:var(--conf);  border:1px solid rgba(0,214,143,.2)}
+.p-prob{background:rgba(56,189,248,.12); color:var(--prob);  border:1px solid rgba(56,189,248,.2)}
+.p-unlik{background:rgba(100,116,139,.15);color:var(--unlik);border:1px solid rgba(100,116,139,.25)}
+.p-block{background:rgba(167,139,250,.12);color:var(--block);border:1px solid rgba(167,139,250,.2)}
+.p-ok  {background:rgba(0,214,143,.12);  color:var(--conf);  border:1px solid rgba(0,214,143,.2)}
+.p-miss{background:rgba(71,85,105,.15);  color:#64748B;      border:1px solid rgba(71,85,105,.25)}
+
+/* ── Progress / score bars ────────────────────────────────────────────── */
+.bar-bg{height:5px;background:var(--surface);border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(0,.55,.45,1)}
+
+/* ── Mit badges ───────────────────────────────────────────────────────── */
+.mit-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mit{display:flex;align-items:center;gap:7px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r);padding:6px 9px}
+.mit.on{border-color:rgba(0,214,143,.2);background:rgba(0,214,143,.04)}
+.mit.off{border-color:rgba(255,51,85,.2);background:rgba(255,51,85,.04)}
+.mit-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mit-name{font-size:11px;font-family:var(--mono);flex:1;color:var(--tdim)}
+.mit-val{font-family:var(--mono);font-size:10px;font-weight:700}
+
+/* ── Pipeline overview ────────────────────────────────────────────────── */
+.pipeline-row{display:flex;align-items:center;gap:0;margin:0 0 18px}
+.phase-node{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r2);
+  padding:12px 10px;position:relative;transition:border-color .2s}
+.phase-node.complete{border-color:rgba(0,214,143,.3)}
+.phase-node.missing{border-color:rgba(71,85,105,.2);opacity:.55}
+.phase-node:not(:last-child)::after{
+  content:"→";position:absolute;right:-16px;font-size:14px;color:var(--tdim);
+  top:50%;transform:translateY(-50%);z-index:1}
+.phase-num{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--tdim);letter-spacing:2px}
+.phase-status{font-size:18px}
+.phase-lbl{font-size:10px;color:var(--tdim);text-align:center;line-height:1.3}
+.phase-size{font-family:var(--mono);font-size:9px;color:var(--tdim)}
+.pipeline-gap{width:32px;flex-shrink:0}
+
+/* ── Chart canvas wrappers ────────────────────────────────────────────── */
+.chart-wrap{position:relative;width:100%;height:180px}
+.chart-sm{height:140px}
+.chart-lg{height:240px}
+.donut-wrap{display:flex;align-items:center;justify-content:center;gap:20px}
+.donut-canvas{width:120px!important;height:120px!important;flex-shrink:0}
+.legend{display:flex;flex-direction:column;gap:7px}
+.legend-row{display:flex;align-items:center;gap:8px}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.llabel{font-size:11px;color:var(--tdim);font-family:var(--mono);flex:1}
+.lcount{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--thi)}
+
+/* ── Score cell ───────────────────────────────────────────────────────── */
+.score-cell{display:flex;align-items:center;gap:7px}
+.score-val{font-family:var(--mono);font-size:12px;font-weight:700;width:44px;flex-shrink:0}
+.score-bg{flex:1;height:4px;background:var(--surface);border-radius:99px;overflow:hidden}
+.score-fill{height:100%;border-radius:99px}
+
+/* ── Report markdown ──────────────────────────────────────────────────── */
+.md-body{color:var(--txt);line-height:1.7}
+.md-body h1{font-size:18px;font-weight:700;color:var(--thi);margin:0 0 14px}
+.md-body h2{font-size:15px;font-weight:600;color:var(--thi);margin:20px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.md-body h3{font-size:13px;font-weight:600;color:var(--accent);margin:14px 0 6px}
+.md-body p{margin:6px 0}
+.md-body ul,.md-body ol{padding-left:20px;margin:6px 0}
+.md-body li{margin:3px 0}
+.md-body code{background:var(--surface);border:1px solid var(--border);
+  border-radius:3px;padding:1px 5px;font-size:11px;color:var(--accent)}
+.md-body pre{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px;overflow-x:auto;margin:10px 0}
+.md-body pre code{background:none;border:none;padding:0;color:var(--txt)}
+.md-body blockquote{border-left:3px solid var(--accent);padding-left:12px;color:var(--tdim);margin:8px 0}
+.md-body table{width:auto;margin:10px 0}
+.md-body th,.md-body td{padding:5px 10px;border:1px solid var(--border)}
+.md-body strong{color:var(--thi);font-weight:600}
+.md-body hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* ── Raw log ──────────────────────────────────────────────────────────── */
+.log-view{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px;font-family:var(--mono);font-size:11px;line-height:1.6;
+  overflow:auto;max-height:400px;color:var(--txt);white-space:pre-wrap;word-break:break-all}
+
+/* ── Sub-tabs (reports) ───────────────────────────────────────────────── */
+.subtabnav{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:1px}
+.subtab{padding:6px 12px;font-size:11px;font-family:var(--mono);color:var(--tdim);
+  border-bottom:2px solid transparent;cursor:pointer;transition:all .15s}
+.subtab:hover{color:var(--txt)}
+.subtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.subpage{display:none}.subpage.active{display:block}
+
+/* ── Filter / search ──────────────────────────────────────────────────── */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.search{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:5px 10px;color:var(--txt);font-family:var(--mono);font-size:12px;
+  outline:none;transition:border-color .15s;width:200px}
+.search:focus{border-color:var(--accent)}
+.search::placeholder{color:var(--tdim)}
+.fchip{padding:3px 10px;border-radius:99px;border:1px solid var(--border);
+  background:transparent;color:var(--tdim);font-size:11px;font-family:var(--mono);
+  cursor:pointer;transition:all .15s}
+.fchip:hover,.fchip.on{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.08)}
+.result-count{font-family:var(--mono);font-size:11px;color:var(--tdim);margin-left:auto}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media(max-width:900px){.grid4{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.grid4,.grid3,.grid2{grid-template-columns:1fr}.hstack{flex-direction:column}}
+</style>
+</head>
+<body style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
+
+<!-- ── Inject data ──────────────────────────────────────────────────────── -->
+<script>
+const PIPELINE = {{ pipeline | tojson | safe }};
+const P0  = {{ p0  | tojson | safe }};
+const P0S = {{ p0s | tojson | safe }};
+const P0D = {{ p0d | tojson | safe }};
+const P1  = {{ p1  | tojson | safe }};
+const P1H = {{ p1h | tojson | safe }};
+const P2H = {{ p2h | tojson | safe }};
+const P3  = {{ p3  | tojson | safe }};
+const P4  = {{ p4  | tojson | safe }};
+const AFL_PLOT  = {{ afl_plot  | tojson | safe }};
+const AFL_STATS = {{ afl_stats | tojson | safe }};
+const SEEDS     = {{ seeds     | tojson | safe }};
+const MD = {
+  disasm:  {{ md_disasm  | tojson | safe }},
+  vuln:    {{ md_class   | tojson | safe }},
+  handoff: {{ md_handoff | tojson | safe }},
+  p4txt:   {{ p4_txt     | tojson | safe }},
+  stderr:  {{ afl_stderr | tojson | safe }},
+};
+const CRA_DIR = {{ cra_dir | tojson | safe }};
+</script>
+
+<!-- ── Topbar ────────────────────────────────────────────────────────────── -->
+<nav class="topbar">
+  <span class="brand">CRA</span>
+  <span class="brand-sub">Pipeline Dashboard</span>
+  <div class="topbar-dir">↳ <span id="dir-label"></span></div>
+  <div class="topbar-right">
+    <div class="status-dot" id="status-dot"></div>
+    <span class="phase-count" id="phase-count"></span>
+    <button class="btn" id="refresh-btn" onclick="location.reload()">↺ refresh</button>
+  </div>
+</nav>
+
+<!-- ── Tab navigation ────────────────────────────────────────────────────── -->
+<div class="tabnav" id="tabnav">
+  <div class="tab active" data-page="overview">OVERVIEW</div>
+  <div class="tab" data-page="binary">BINARY <span class="badge b-red" id="badge-vulns"></span></div>
+  <div class="tab" data-page="gadgets">GADGETS <span class="badge b-blue" id="badge-gadgets"></span></div>
+  <div class="tab" data-page="chains">CHAINS <span class="badge b-green" id="badge-chains"></span></div>
+  <div class="tab" data-page="scoring">SCORING</div>
+  <div class="tab" data-page="fuzzing">AFL++</div>
+  <div class="tab" data-page="reports">REPORTS</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="main" id="main">
+
+<!-- ── OVERVIEW ──────────────────────────────────────────────────────────── -->
+<div class="page active" id="page-overview">
+
+  <!-- Pipeline flow -->
+  <div style="margin-bottom:12px">
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--tdim);margin-bottom:10px">Pipeline Status</div>
+    <div class="pipeline-row" id="pipeline-row"></div>
+  </div>
+
+  <!-- Key metrics -->
+  <div class="grid4" style="margin-bottom:12px" id="overview-stats"></div>
+
+  <!-- 2-col: runtime env + top finding -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Runtime Environment</div>
+      <div class="mit-grid" id="ov-mitigations"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Validated Chain</div>
+      <div id="ov-best-chain"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── BINARY ─────────────────────────────────────────────────────────────── -->
+<div class="page" id="page-binary">
+  <div class="hstack" style="align-items:flex-start">
+    <!-- Left col -->
+    <div style="flex:0 0 280px" class="vstack">
+      <div class="card">
+        <div class="card-title">Binary Metadata</div>
+        <div id="bin-meta"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Security Mitigations</div>
+        <div class="mit-grid" id="bin-mitigations"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Win Functions</div>
+        <div id="bin-wins"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Controlled Registers</div>
+        <div id="bin-regs" style="font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
+      </div>
+    </div>
+    <!-- Right col -->
+    <div style="flex:1" class="vstack">
+      <!-- Vulnerability patterns -->
+      <div class="card">
+        <div class="card-title">Vulnerability Patterns (Phase 0 Static)</div>
+        <div class="filter-bar">
+          <button class="fchip on" data-sf="all">All</button>
+          <button class="fchip" data-sf="CRITICAL">CRITICAL</button>
+          <button class="fchip" data-sf="HIGH">HIGH</button>
+          <button class="fchip" data-sf="MEDIUM">MEDIUM</button>
+          <span class="result-count" id="pat-count"></span>
+        </div>
+        <div class="tbl-wrap" style="max-height:300px;overflow-y:auto">
+          <table><thead><tr>
+            <th>Severity</th><th>Type</th><th>Function</th><th>Address</th><th>RIP Offset</th>
+          </tr></thead><tbody id="pat-tbody"></tbody></table>
+        </div>
+      </div>
+      <!-- Functions -->
+      <div class="card">
+        <div class="card-title">Functions</div>
+        <div class="tbl-wrap" style="max-height:260px;overflow-y:auto">
+          <table><thead><tr>
+            <th>Name</th><th>Address</th><th>Frame</th><th>Calls</th><th>Flag</th>
+          </tr></thead><tbody id="fn-tbody"></tbody></table>
+        </div>
+      </div>
+      <!-- Sections -->
+      <div class="card">
+        <div class="card-title">Sections</div>
+        <div class="tbl-wrap" style="max-height:220px;overflow-y:auto">
+          <table><thead><tr>
+            <th>Name</th><th>Address</th><th>Size</th><th>Flags</th>
+          </tr></thead><tbody id="sec-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GADGETS ────────────────────────────────────────────────────────────── -->
+<div class="page" id="page-gadgets">
+  <!-- Phase 1 -->
+  <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--tdim);margin-bottom:10px">Phase 1 — Opcode Collection</div>
+  <div class="grid4" style="margin-bottom:12px" id="g1-stats"></div>
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Sink Type Distribution</div>
+      <div class="donut-wrap" style="padding:8px 0">
+        <canvas class="donut-canvas" id="sink-chart"></canvas>
+        <div class="legend" id="sink-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Phase 1 Details</div>
+      <div id="g1-details" style="font-size:12px;color:var(--tdim);line-height:2"></div>
+    </div>
+  </div>
+  <!-- Phase 2 -->
+  <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--tdim);margin-bottom:10px">Phase 2 — Gadget Identification</div>
+  <div class="grid4" style="margin-bottom:12px" id="g2-stats"></div>
+  <div class="card">
+    <div class="card-title">Semantic Tag Distribution</div>
+    <div class="chart-wrap chart-sm"><canvas id="sem-chart"></canvas></div>
+  </div>
+</div>
+
+<!-- ── CHAINS ─────────────────────────────────────────────────────────────── -->
+<div class="page" id="page-chains">
+  <div class="grid2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="card-title">Validation Outcomes</div>
+      <div class="donut-wrap" style="padding:8px 0">
+        <canvas class="donut-canvas" id="val-chart"></canvas>
+        <div class="legend" id="val-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Best Chain</div>
+      <div id="best-chain-detail"></div>
+    </div>
+  </div>
+  <!-- Chains table -->
+  <div class="card">
+    <div class="card-title">Validated Chains</div>
+    <div class="filter-bar">
+      <button class="fchip on" data-cf="all">All</button>
+      <button class="fchip" data-cf="CONFIRMED">CONFIRMED</button>
+      <button class="fchip" data-cf="PROBABLE">PROBABLE</button>
+      <button class="fchip" data-cf="UNLIKELY">UNLIKELY</button>
+      <button class="fchip" data-cf="BLOCKED">BLOCKED</button>
+      <input class="search" id="chain-search" placeholder="search goal / id…">
+      <span class="result-count" id="chain-count"></span>
+    </div>
+    <div class="tbl-wrap" style="max-height:420px;overflow-y:auto">
+      <table>
+        <thead><tr>
+          <th data-col="status">Status</th>
+          <th data-col="goal">Goal</th>
+          <th data-col="confidence">Confidence</th>
+          <th data-col="length">Length</th>
+          <th>Addresses</th>
+          <th data-col="elapsed_s">Time</th>
+        </tr></thead>
+        <tbody id="chain-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCORING ────────────────────────────────────────────────────────────── -->
+<div class="page" id="page-scoring">
+  <div class="grid4" style="margin-bottom:12px" id="sc-stats"></div>
+  <div class="grid2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="card-title">Severity Distribution</div>
+      <div class="donut-wrap" style="padding:8px 0">
+        <canvas class="donut-canvas" id="sev-chart"></canvas>
+        <div class="legend" id="sev-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mitigation Multiplier Breakdown</div>
+      <div id="mit-breakdown" style="font-size:12px;line-height:2.2;color:var(--tdim)"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Chains by Score</div>
+    <div class="tbl-wrap" style="max-height:400px;overflow-y:auto">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Severity</th><th>Score</th>
+          <th>Status</th><th>Goal</th><th>Length</th><th>Confidence</th>
+        </tr></thead>
+        <tbody id="score-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── FUZZING ────────────────────────────────────────────────────────────── -->
+<div class="page" id="page-fuzzing">
+  <div class="grid4" style="margin-bottom:12px" id="afl-stats"></div>
+  <div class="grid2" style="margin-bottom:12px">
+    <div class="card">
+      <div class="card-title">Executions / sec</div>
+      <div class="chart-wrap"><canvas id="afl-execs-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Crashes &amp; Corpus over time</div>
+      <div class="chart-wrap"><canvas id="afl-crash-chart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Seed Corpus</div>
+      <div class="tbl-wrap" style="max-height:220px;overflow-y:auto">
+        <table><thead><tr><th>Seed file</th><th>Size</th></tr></thead>
+        <tbody id="seeds-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">AFL++ Command Line</div>
+      <div class="log-view" id="afl-cmdline" style="max-height:80px"></div>
+      <div class="card-title" style="margin-top:12px">stderr log (last 60 KB)</div>
+      <div class="log-view" id="afl-stderr-log" style="max-height:140px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REPORTS ────────────────────────────────────────────────────────────── -->
+<div class="page" id="page-reports">
+  <div class="subtabnav">
+    <div class="subtab active" data-sp="disasm">Phase 0 Disassembly</div>
+    <div class="subtab" data-sp="vuln">Phase 0.5 Classification</div>
+    <div class="subtab" data-sp="handoff">Hand-off Summary</div>
+    <div class="subtab" data-sp="p4txt">Phase 4 Report</div>
+    <div class="subtab" data-sp="stderr">AFL stderr</div>
+  </div>
+  <div class="subpage active" id="sp-disasm"><div class="card"><div class="md-body" id="md-disasm"></div></div></div>
+  <div class="subpage" id="sp-vuln"><div class="card"><div class="md-body" id="md-vuln"></div></div></div>
+  <div class="subpage" id="sp-handoff"><div class="card"><div class="md-body" id="md-handoff"></div></div></div>
+  <div class="subpage" id="sp-p4txt"><div class="card"><div class="log-view" id="p4-txt-view" style="max-height:70vh"></div></div></div>
+  <div class="subpage" id="sp-stderr"><div class="card"><div class="log-view" id="stderr-view" style="max-height:70vh"></div></div></div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ── Helpers ──────────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = n => n == null ? '—' : Number(n).toLocaleString();
+const hex = v => v ? v : '—';
+
+function scoreColor(s){ return s>=6?'#FF3355':s>=3?'#F59E0B':'#00D68F'; }
+
+function sevPill(s){
+  const cls={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'}[s]||'p-low';
+  return `<span class="pill ${cls}">${esc(s)}</span>`;
+}
+function statusPill(s){
+  const cls={CONFIRMED:'p-conf',PROBABLE:'p-prob',UNLIKELY:'p-unlik',BLOCKED:'p-block'}[s]||'p-unlik';
+  return `<span class="pill ${cls}">${esc(s)}</span>`;
+}
+function metaRow(label, val){
+  return `<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+    <span style="font-size:11px;color:var(--tdim);width:110px;flex-shrink:0">${esc(label)}</span>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--thi)">${esc(val)}</span>
+  </div>`;
+}
+function statCard(val, label, sub='', color='var(--thi)'){
+  return `<div class="stat">
+    <div class="stat-val" style="color:${color}">${esc(String(val))}</div>
+    <div class="stat-lbl">${esc(label)}</div>
+    ${sub ? `<div class="stat-sub">${esc(sub)}</div>` : ''}
+  </div>`;
+}
+function scoreBar(score){
+  const pct = Math.round(Math.min(score/10,1)*100);
+  const col = scoreColor(score);
+  return `<div class="score-cell">
+    <span class="score-val" style="color:${col}">${(+score).toFixed(4)}</span>
+    <div class="score-bg"><div class="score-fill" style="width:${pct}%;background:${col}"></div></div>
+  </div>`;
+}
+
+function mkChart(id, type, labels, datasets, opts={}){
+  const ctx = $(id);
+  if(!ctx) return null;
+  Chart.defaults.color = '#5A7490';
+  Chart.defaults.borderColor = '#1A2D47';
+  return new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor:'#111F35', borderColor:'#1B2E4A', borderWidth:1,
+          titleFont:{family:"'JetBrains Mono',monospace",size:11},
+          bodyFont:{family:"'JetBrains Mono',monospace",size:11},
+          padding:8,
+        }
+      },
+      ...opts
+    }
+  });
+}
+
+function donutChart(id, legendId, items){
+  // items: [{label, value, color}]
+  const ctx = $(id); if(!ctx) return;
+  new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels: items.map(i=>i.label),
+      datasets:[{ data:items.map(i=>i.value), backgroundColor:items.map(i=>i.color),
+                  borderWidth:0, hoverOffset:4 }]
+    },
+    options:{
+      responsive:false, cutout:'68%',
+      animation:{animateRotate:true,duration:900},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#111F35',borderColor:'#1B2E4A',borderWidth:1,padding:8,
+        titleFont:{family:"'JetBrains Mono',monospace",size:11},
+        bodyFont:{family:"'JetBrains Mono',monospace",size:11},
+      }}
+    }
+  });
+  if(!legendId) return;
+  const leg = $(legendId);
+  if(!leg) return;
+  leg.innerHTML = items.map(i=>`
+    <div class="legend-row">
+      <div class="ldot" style="background:${i.color}"></div>
+      <span class="llabel">${esc(i.label)}</span>
+      <span class="lcount">${fmt(i.value)}</span>
+    </div>`).join('');
+}
+
+/* ── Topbar init ──────────────────────────────────────────────────────── */
+function initTopbar(){
+  $('dir-label').textContent = CRA_DIR;
+  const total = Object.keys(PIPELINE).length;
+  const done  = Object.values(PIPELINE).filter(v=>v.exists).length;
+  $('phase-count').textContent = `${done}/${total} phases`;
+  const dot = $('status-dot');
+  dot.className = 'status-dot ' + (done===total?'ok':done>0?'warn':'');
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────── */
+const _chartInit = {};
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const pid = 'page-'+t.dataset.page;
+    $(pid).classList.add('active');
+    if(!_chartInit[pid]){ initPage(t.dataset.page); _chartInit[pid]=true; }
+  });
+});
+document.querySelectorAll('.subtab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.subtab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.subpage').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    $('sp-'+t.dataset.sp).classList.add('active');
+  });
+});
+
+/* ── Page inits ───────────────────────────────────────────────────────── */
+function initPage(name){
+  const f = {
+    gadgets:initGadgets, chains:initChains,
+    scoring:initScoring, fuzzing:initFuzzing, reports:initReports
+  }[name];
+  if(f) f();
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  OVERVIEW                                                              */
+/* ══════════════════════════════════════════════════════════════════════ */
+function initOverview(){
+  /* Pipeline row */
+  const phases = [
+    {key:'phase0_vuln_report.json',  label:'Phase 0', sub:'Detection'},
+    {key:'phase1_gadget_catalog.json',label:'Phase 1', sub:'Opcodes'},
+    {key:'phase2_enhanced_catalog.json',label:'Phase 2',sub:'Gadgets'},
+    {key:'phase3_validated_chains.json',label:'Phase 3',sub:'Chains'},
+    {key:'phase4_vulnerability_report.json',label:'Phase 4',sub:'Scoring'},
+  ];
+  const row = $('pipeline-row');
+  phases.forEach((ph,i)=>{
+    const info = PIPELINE[ph.key]||{exists:false,size:0};
+    const ok   = info.exists;
+    const sz   = ok ? (info.size>1024*1024?(info.size/1024/1024).toFixed(1)+'MB'
+                       :(info.size/1024).toFixed(0)+'KB') : '';
+    row.insertAdjacentHTML('beforeend',`
+      <div class="phase-node ${ok?'complete':'missing'}">
+        <span class="phase-num">${ph.label}</span>
+        <span class="phase-status">${ok?'✓':'○'}</span>
+        <span class="phase-lbl">${ph.sub}</span>
+        ${ok?`<span class="phase-size">${sz}</span>`:''}
+      </div>
+      ${i<phases.length-1?'<div class="pipeline-gap"></div>':''}
+    `);
+  });
+
+  /* Key metrics */
+  const vulnCnt  = P0 ? P0.exploitable_found : '—';
+  const gadgets  = P1 ? fmt(P1.total_gadgets) : (P1H?fmt(P1H.total_gadgets):'—');
+  const chains   = P3 ? fmt((P3.validated_chains||[]).length) : '—';
+  const bestScore= P4 ? (P4.top_chains||[])[0]?.score?.toFixed(4) : '—';
+
+  $('overview-stats').innerHTML = [
+    statCard(vulnCnt,  'Vulnerabilities', P0?'from Phase 0 static':'', 'var(--high)'),
+    statCard(gadgets,  'Gadgets',         P1?`${Object.keys(P1.sink_distribution||{}).join(' · ')}`:'', 'var(--accent)'),
+    statCard(chains,   'Chains validated',P3?`${P3.validation_summary?.CONFIRMED||0} confirmed`:'','var(--conf)'),
+    statCard(bestScore,'Best score',      P4?`mit × ${P4.mitigation_multiplier?.toFixed(4)||'?'}`:'','var(--medium)'),
+  ].join('');
+
+  /* Mitigations */
+  const env = (P0?.runtime_env)||(P4?.runtime_context)||{};
+  renderMitigations('ov-mitigations', env);
+
+  /* Best chain */
+  const bc = P4?.top_chains?.[0];
+  if(bc){
+    $('ov-best-chain').innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        ${sevPill(bc.severity)} ${statusPill(bc.status)}
+        <span style="font-family:var(--mono);font-size:12px;color:var(--medium);margin-left:auto">${bc.score?.toFixed(4)||'—'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--tdim);margin-bottom:5px">${esc(bc.goal||'—')}</div>
+      <div style="font-size:11px;color:var(--tdim)">${(bc.gadget_ids||[]).slice(0,4).map(id=>`<span class="pill p-unlik" style="margin:1px">${esc(id)}</span>`).join(' ')}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--tdim);margin-top:8px">${(bc.addresses||[]).join(' → ')}</div>
+    `;
+  } else {
+    $('ov-best-chain').innerHTML = '<div style="color:var(--tdim);font-size:12px">Phase 4 not yet run.</div>';
+  }
+}
+
+function renderMitigations(id, env){
+  const items = [
+    ['ASLR',        env.aslr_level>=2, `Level ${env.aslr_level??'?'}`],
+    ['PIE',         !!env.pie_binary,  env.pie_binary?'ON':'OFF'],
+    ['Canary',      !!env.stack_canary,env.stack_canary?'ON':'OFF'],
+    ['NX / DEP',    !!env.nx_enabled,  env.nx_enabled?'ON':'OFF'],
+    ['Full RELRO',  !!env.full_relro,  env.full_relro?'ON':'OFF'],
+    ['CET IBT',     !!env.cet_ibt,     env.cet_ibt?'ON':'OFF'],
+    ['CET SHSTK',   !!env.cet_shstk,  env.cet_shstk?'ON':'OFF'],
+  ];
+  const el = $(id); if(!el) return;
+  el.innerHTML = items.map(([name,on,val])=>`
+    <div class="mit ${on?'on':'off'}">
+      <div class="mit-dot" style="background:${on?'var(--conf)':'var(--high)'}"></div>
+      <span class="mit-name">${esc(name)}</span>
+      <span class="mit-val" style="color:${on?'var(--conf)':'var(--high)'}">${esc(val)}</span>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  BINARY                                                                */
+/* ══════════════════════════════════════════════════════════════════════ */
+function initBinary(){
+  const meta = P0S?.metadata || {};
+  const env  = P0?.runtime_env || {};
+
+  // Metadata
+  $('bin-meta').innerHTML = [
+    metaRow('Binary',    P0S?.binary ? P0S.binary.split('/').pop() : '—'),
+    metaRow('Arch',      meta.arch||'—'),
+    metaRow('Bits',      meta.bits ? meta.bits+'‑bit':'—'),
+    metaRow('Stripped',  meta.stripped!=null?(meta.stripped?'Yes':'No (symbols)'):'—'),
+    metaRow('Input mode',(P0?.input_mode||P0S?.input_mode_hint||'—')),
+    metaRow('BuildID',   (meta.build_id||'—').substring(0,20)),
+    metaRow('Compiler',  meta.compiler||'—'),
+  ].join('');
+
+  // Mitigations (from both sources)
+  const merged = Object.assign({}, env, meta,
+    {nx_enabled: meta.nx!=null ? meta.nx : env.nx_enabled,
+     pie_binary: meta.pie!=null ? meta.pie : env.pie_binary,
+     stack_canary:meta.canary!=null?meta.canary:env.stack_canary,
+     full_relro: meta.relro==='full' || env.full_relro,
+     cet_ibt:   env.cet_ibt||false, cet_shstk:env.cet_shstk||false,
+    });
+  renderMitigations('bin-mitigations', merged);
+
+  // Win functions
+  const wins = P0S?.win_functions || P0?.ret2win_targets || [];
+  $('bin-wins').innerHTML = wins.length
+    ? wins.map(w=>`<div style="padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:12px;color:var(--conf)">${esc(w.function||w.function_name||'?')}</span>
+        <span style="color:var(--tdim);font-size:11px;margin:0 4px">→</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--medium)">${esc(w.spawner||w.effect||'?')}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--tdim);float:right">${esc(w.address||w.call_addr?'0x'+(+w.call_addr).toString(16):'')}</span>
+      </div>`).join('')
+    : '<div style="color:var(--tdim);font-size:12px">None detected</div>';
+
+  // Controlled registers
+  const regs = P0?.all_controlled_registers || [];
+  $('bin-regs').textContent = regs.length ? regs.join('  ·  ') : 'None detected';
+
+  // Patterns
+  renderPatterns();
+  document.querySelectorAll('.fchip[data-sf]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.fchip[data-sf]').forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      renderPatterns(btn.dataset.sf);
+    });
+  });
+
+  // Functions
+  const fns = P0S?.functions || {};
+  $('fn-tbody').innerHTML = Object.entries(fns).map(([name,f])=>`<tr>
+    <td class="mono" style="color:${f.dangerous?'var(--high)':'var(--thi)'}">${esc(name)}</td>
+    <td class="mono dim">${esc(f.addr||'—')}</td>
+    <td class="mono dim">${f.frame_size!=null?f.frame_size+'B':'—'}</td>
+    <td style="font-size:11px;color:var(--tdim)">${(f.calls||[]).slice(0,4).join(', ')}</td>
+    <td>${f.dangerous?'<span class="pill p-crit">⚑ VULN</span>':''}${
+      (P0S?.win_functions||[]).some(w=>w.function===name)?'<span class="pill p-conf">★ WIN</span>':''}</td>
+  </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--tdim);padding:20px">No symbol data</td></tr>';
+
+  // Sections
+  const secs = P0S?.sections || [];
+  $('sec-tbody').innerHTML = secs.filter(s=>s.size>0).map(s=>`<tr>
+    <td class="mono" style="color:var(--accent)">${esc(s.name)}</td>
+    <td class="mono dim">${esc(s.addr)}</td>
+    <td class="mono dim">${fmt(s.size)} B</td>
+    <td class="mono dim">${esc(s.flags||'')}</td>
+  </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--tdim);padding:20px">No section data</td></tr>';
+}
+
+function renderPatterns(filter='all'){
+  const pats = P0S?.patterns || [];
+  const shown = filter==='all' ? pats : pats.filter(p=>p.severity===filter);
+  $('pat-count').textContent = `${shown.length} pattern${shown.length!==1?'s':''}`;
+  $('pat-tbody').innerHTML = shown.map(p=>`<tr>
+    <td>${sevPill(p.severity)}</td>
+    <td class="mono" style="font-size:11px;color:var(--medium)">${esc(p.type?.replace(/_/g,' ')||'—')}</td>
+    <td class="mono" style="color:var(--thi)">${esc(p.in_function||'—')}</td>
+    <td class="mono dim">${p.call_addr?'0x'+p.call_addr.toString(16):'[binary]'}</td>
+    <td class="mono" style="color:${p.rip_offset?'var(--high)':'var(--tdim)'}">${p.rip_offset!=null?p.rip_offset+'B':'—'}</td>
+  </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tdim);padding:20px">No patterns in Phase 0 static JSON</td></tr>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  GADGETS                                                               */
+/* ══════════════════════════════════════════════════════════════════════ */
+function initGadgets(){
+  // Phase 1
+  const p1 = P1 || P1H || {};
+  const sink = p1.sink_distribution || p1.sinkDistribution || {};
+  const total = p1.total_gadgets ?? 0;
+  const depth = P1H?.chain_depth_range || [];
+
+  $('g1-stats').innerHTML = [
+    statCard(fmt(total),'Total Gadgets','Phase 1 catalog','var(--accent)'),
+    statCard(fmt(sink.RET||0),'RET sinks','reliable return chain','var(--conf)'),
+    statCard(fmt(sink.JMP||0),'JMP sinks','indirect jump','var(--prob)'),
+    statCard(fmt((sink.CALL||0)+(sink.CJMP||0)),'CALL / CJMP','secondary sinks','var(--medium)'),
+  ].join('');
+
+  $('g1-details').innerHTML = `
+    Chain depth: ${depth.length?depth[0]+'–'+depth[1]:'—'}<br>
+    Binary: ${esc((P1H?.binary||'—').split('/').pop())}<br>
+    Phase 0 controlled regs: ${esc((P1H?.phase0_controlled_registers||[]).join(', ')||'—')}<br>
+    Libraries scanned: ${Object.keys(P1H?.phase0_base_addresses||{}).length||'—'}<br>
+    Generated: ${esc((P1H?.generated_at||'—').replace('T',' ').replace('Z',' UTC'))}
+  `;
+
+  // Sink donut
+  const SINK_COLORS = {RET:'#00D68F',JMP:'#38BDF8',CALL:'#F59E0B',CJMP:'#A78BFA'};
+  const sinkItems = Object.entries(sink).map(([k,v])=>({label:k,value:v,color:SINK_COLORS[k]||'#475569'}));
+  donutChart('sink-chart','sink-legend',sinkItems);
+
+  // Phase 2
+  const p2 = P2H || {};
+  const semDist = p2.semantic_distribution || {};
+  const hvc     = p2.high_value_counts || {};
+
+  $('g2-stats').innerHTML = [
+    statCard(fmt(p2.total_unique_gadgets),'Unique Gadgets','after dedup','var(--accent)'),
+    statCard(fmt(p2.duplicates_removed),'Duplicates Removed','normalized fingerprint','var(--tdim)'),
+    statCard(fmt(hvc.syscall||0),'Syscall gadgets','has_syscall=true','var(--high)'),
+    statCard(fmt(hvc.mem_write||0),'Mem-write gadgets','has_mem_write=true','var(--medium)'),
+  ].join('');
+
+  // Semantic bar chart
+  const semLabels = Object.keys(semDist);
+  const semVals   = Object.values(semDist);
+  const SEM_COLORS = ['#38BDF8','#00D68F','#F59E0B','#A78BFA','#FF3355','#FF6B3D','#64748B'];
+  mkChart('sem-chart','bar',semLabels,[{
+    label:'Gadgets', data:semVals,
+    backgroundColor: semLabels.map((_,i)=>SEM_COLORS[i%SEM_COLORS.length]+'CC'),
+    borderRadius:4, borderWidth:0,
+  }],{
+    scales:{
+      x:{ticks:{color:'#5A7490',font:{family:"'JetBrains Mono'",size:10}},grid:{color:'#1A2D47'}},
+      y:{ticks:{color:'#5A7490',font:{family:"'JetBrains Mono'",size:10}},grid:{color:'#1A2D47'}},
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  CHAINS                                                                */
+/* ══════════════════════════════════════════════════════════════════════ */
+let _allChains = [], _chainFilter = 'all', _chainQ = '';
+
+function initChains(){
+  const p3 = P3 || {};
+  const sum = p3.validation_summary || {};
+  _allChains = p3.validated_chains || [];
+
+  // Donut
+  const VAL_COLORS = {CONFIRMED:'#00D68F',PROBABLE:'#38BDF8',UNLIKELY:'#64748B',BLOCKED:'#A78BFA'};
+  const valItems = ['CONFIRMED','PROBABLE','UNLIKELY','BLOCKED'].map(k=>({
+    label:k, value:sum[k]||0, color:VAL_COLORS[k]
+  }));
+  donutChart('val-chart','val-legend',valItems);
+
+  // Best chain
+  const best = _allChains.find(c=>c.chain_id===p3.best_chain_id) || _allChains[0];
+  if(best){
+    $('best-chain-detail').innerHTML = `
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
+        ${statusPill(best.status)} ${sevPill(best.severity||'LOW')}
+        <span style="font-family:var(--mono);font-size:12px;color:var(--medium);margin-left:auto">conf ${((best.confidence||0)*100).toFixed(0)}%</span>
+      </div>
+      <div style="font-size:11px;color:var(--tdim);margin-bottom:8px">${esc(best.goal||'—')}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--tdim);line-height:1.8">
+        Length: ${best.length||'?'} gadgets<br>
+        Addresses: ${(best.addresses||[]).join(' → ')}<br>
+        ${best.error?'Note: '+best.error:''}
+      </div>`;
+  }
+
+  // Filters
+  document.querySelectorAll('.fchip[data-cf]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.fchip[data-cf]').forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      _chainFilter = btn.dataset.cf;
+      renderChains();
+    });
+  });
+  $('chain-search').addEventListener('input', e=>{ _chainQ=e.target.value; renderChains(); });
+  renderChains();
+}
+
+function renderChains(){
+  const q = _chainQ.toLowerCase();
+  let shown = _allChains.filter(c=>{
+    if(_chainFilter!=='all' && c.status!==_chainFilter) return false;
+    if(q && !c.chain_id?.toLowerCase().includes(q) && !c.goal?.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  $('chain-count').textContent = `${shown.length} chain${shown.length!==1?'s':''}`;
+  $('chain-tbody').innerHTML = shown.map(c=>`<tr>
+    <td>${statusPill(c.status)}</td>
+    <td style="font-size:11px">${esc(c.goal?.replace(/_/g,' ')||'—')}</td>
+    <td>
+      <div class="score-cell">
+        <span class="mono" style="font-size:11px;color:${((c.confidence||0)>0.7?'var(--conf)':'var(--tdim)')};width:38px">${((c.confidence||0)*100).toFixed(0)}%</span>
+        <div class="score-bg"><div class="score-fill" style="width:${Math.round((c.confidence||0)*100)}%;background:${(c.confidence||0)>0.7?'#00D68F':'#38BDF8'}"></div></div>
+      </div>
+    </td>
+    <td class="mono dim">${c.length||'?'}</td>
+    <td style="font-family:var(--mono);font-size:10px;color:var(--tdim)">${(c.addresses||[]).slice(0,3).join(' → ')}${(c.addresses||[]).length>3?' …':''}</td>
+    <td class="mono dim">${c.elapsed_s!=null?(c.elapsed_s*1000).toFixed(0)+'ms':'—'}</td>
+  </tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tdim);padding:20px">No chains match filter</td></tr>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  SCORING                                                               */
+/* ══════════════════════════════════════════════════════════════════════ */
+function initScoring(){
+  const p4 = P4 || {};
+  const dist = p4.severity_distribution || {};
+  const chains = p4.top_chains || [];
+  const ri = p4.runtime_context || {};
+
+  $('sc-stats').innerHTML = [
+    statCard(fmt(p4.total_chains_scored),'Chains scored','all status','var(--accent)'),
+    statCard(fmt(dist.HIGH||0),'HIGH severity',`score ≥ ${p4.thresholds?.HIGH||6}`, 'var(--high)'),
+    statCard(fmt(dist.MEDIUM||0),'MEDIUM',`score ≥ ${p4.thresholds?.MEDIUM||3}`,'var(--medium)'),
+    statCard((p4.mitigation_multiplier||0).toFixed(4),'Mit. multiplier','combined penalties','var(--prob)'),
+  ].join('');
+
+  // Severity donut
+  donutChart('sev-chart','sev-legend',[
+    {label:'HIGH',  value:dist.HIGH||0,   color:'#FF3355'},
+    {label:'MEDIUM',value:dist.MEDIUM||0, color:'#F59E0B'},
+    {label:'LOW',   value:dist.LOW||0,    color:'#475569'},
+  ]);
+
+  // Mitigation breakdown
+  const m = p4.mitigation_multiplier||1;
+  const mitigationLines = [
+    ri.requires_aslr_leak||ri.pie_binary ?'ASLR+PIE : × 0.55':'',
+    ri.stack_canary ?'Canary   : × 0.80':'',
+    (ri.cet_ibt||ri.cet_shstk)?'CET      : × 0.40':'',
+    ri.full_relro   ?'Full RELRO: × 0.90':'',
+  ].filter(Boolean);
+  $('mit-breakdown').innerHTML = mitigationLines.length
+    ? `<div style="font-family:var(--mono);font-size:12px;line-height:2.2;color:var(--tdim)">
+        ${mitigationLines.map(l=>`<div>${esc(l)}</div>`).join('')}
+        <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;color:var(--medium)">Combined: × ${m.toFixed(4)}</div>
+      </div>`
+    : '<div style="color:var(--tdim);font-size:12px">No active mitigations (multiplier = 1.0)</div>';
+
+  // Top chains table
+  $('score-tbody').innerHTML = chains.map((c,i)=>`<tr>
+    <td class="mono dim">${i+1}</td>
+    <td>${sevPill(c.severity)}</td>
+    <td>${scoreBar(c.score||0)}</td>
+    <td>${statusPill(c.status)}</td>
+    <td style="font-size:11px">${esc((c.goal||'—').replace(/_/g,' '))}</td>
+    <td class="mono dim">${c.length||'?'}</td>
+    <td class="mono" style="color:var(--prob)">${((c.confidence||0)*100).toFixed(0)}%</td>
+  </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--tdim);padding:20px">No Phase 4 data</td></tr>`;
+
+  // Badges update
+  $('badge-vulns').textContent = dist.HIGH||0;
+  $('badge-chains').textContent = chains.length;
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  FUZZING                                                               */
+/* ══════════════════════════════════════════════════════════════════════ */
+function initFuzzing(){
+  const st = AFL_STATS || {};
+  const plot = AFL_PLOT;
+
+  // Stats
+  let lastExec=0, lastCrash=0, lastCorpus=0, elapsed=0;
+  if(plot?.rows?.length){
+    const last = plot.rows[plot.rows.length-1];
+    const first= plot.rows[0];
+    lastExec   = last.execs_per_sec||0;
+    lastCrash  = last.saved_crashes||0;
+    lastCorpus = last.corpus_count||0;
+    elapsed    = ((last.unix_time||0)-(first.unix_time||0));
+  }
+  $('afl-stats').innerHTML = [
+    statCard(fmt(st.crashes||lastCrash),'Crashes','AFL++ saved','var(--high)'),
+    statCard(fmt(st.hangs||0),'Hangs','timeout inputs','var(--medium)'),
+    statCard(fmt(st.queue||lastCorpus),'Corpus size','queue entries','var(--accent)'),
+    statCard(elapsed?Math.round(elapsed)+'s':'—','Fuzz duration','from plot_data','var(--tdim)'),
+  ].join('');
+
+  // Execs/sec chart
+  if(plot?.rows?.length){
+    const times = plot.rows.map(r=>{
+      const t = new Date((r.unix_time||0)*1000);
+      return `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
+    });
+    const execVals   = plot.rows.map(r=>r.execs_per_sec||0);
+    const crashVals  = plot.rows.map(r=>r.saved_crashes||0);
+    const corpusVals = plot.rows.map(r=>r.corpus_count||0);
+
+    mkChart('afl-execs-chart','line',times,[{
+      label:'Execs/sec', data:execVals,
+      borderColor:'#38BDF8', backgroundColor:'rgba(56,189,248,.08)',
+      fill:true, tension:0.3, pointRadius:0, borderWidth:2,
+    }],{
+      scales:{
+        x:{ticks:{color:'#5A7490',font:{size:9},maxTicksLimit:10},grid:{color:'#1A2D47'}},
+        y:{ticks:{color:'#5A7490',font:{size:10}},grid:{color:'#1A2D47'}},
+      }
+    });
+
+    mkChart('afl-crash-chart','line',times,[
+      {label:'Crashes',  data:crashVals,  borderColor:'#FF3355', backgroundColor:'rgba(255,51,85,.06)',
+       fill:true,tension:0.3,pointRadius:0,borderWidth:2,yAxisID:'y'},
+      {label:'Corpus',   data:corpusVals, borderColor:'#00D68F', backgroundColor:'rgba(0,214,143,.06)',
+       fill:true,tension:0.3,pointRadius:0,borderWidth:2,yAxisID:'y1'},
+    ],{
+      scales:{
+        x:{ticks:{color:'#5A7490',font:{size:9},maxTicksLimit:10},grid:{color:'#1A2D47'}},
+        y:{ticks:{color:'#5A7490',font:{size:10}},grid:{color:'#1A2D47'},position:'left'},
+        y1:{ticks:{color:'#5A7490',font:{size:10}},grid:{drawOnChartArea:false},position:'right'},
+      }
+    });
+  } else {
+    ['afl-execs-chart','afl-crash-chart'].forEach(id=>{
+      const c=$(id); if(c) c.parentElement.innerHTML=
+        '<div style="color:var(--tdim);font-size:12px;text-align:center;padding:40px">No AFL++ plot_data found</div>';
+    });
+  }
+
+  // Seeds table
+  $('seeds-tbody').innerHTML = (SEEDS||[]).map(s=>`<tr>
+    <td class="mono" style="color:var(--thi)">${esc(s.name)}</td>
+    <td class="mono dim">${s.size} B</td>
+  </tr>`).join('') || '<tr><td colspan="2" style="text-align:center;color:var(--tdim);padding:14px">No seeds</td></tr>';
+
+  // Cmdline + stderr
+  $('afl-cmdline').textContent  = st.cmdline || 'Not found';
+  $('afl-stderr-log').textContent = MD.stderr || 'No afl_stderr.log found';
+  $('afl-stderr-log').scrollTop = $('afl-stderr-log').scrollHeight;
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  REPORTS                                                               */
+/* ══════════════════════════════════════════════════════════════════════ */
+function initReports(){
+  const md = markdownit({html:false,linkify:true,typographer:true});
+  [['md-disasm','disasm'],['md-vuln','vuln'],['md-handoff','handoff']].forEach(([eid,key])=>{
+    const el=$(eid); if(!el) return;
+    if(MD[key]) el.innerHTML = md.render(MD[key]);
+    else el.innerHTML='<div style="color:var(--tdim);padding:20px">File not found in cra_output/</div>';
+  });
+  $('p4-txt-view').textContent  = MD.p4txt  || 'phase4_vulnerability_report.txt not found';
+  $('stderr-view').textContent  = MD.stderr || 'afl_stderr.log not found';
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  Badges                                                                */
+/* ══════════════════════════════════════════════════════════════════════ */
+function initBadges(){
+  const vulns   = (P0S?.patterns||[]).filter(p=>p.severity==='CRITICAL'||p.severity==='HIGH').length;
+  const gadgets = P1?.total_gadgets || P1H?.total_gadgets || 0;
+  const chains  = P3?.validated_chains?.length || 0;
+  if(vulns)   $('badge-vulns').textContent   = vulns;
+  if(gadgets) $('badge-gadgets').textContent = gadgets > 999 ? Math.round(gadgets/1000)+'k' : gadgets;
+  if(chains)  $('badge-chains').textContent  = chains;
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  Live status poll                                                       */
+/* ══════════════════════════════════════════════════════════════════════ */
+setInterval(async ()=>{
+  try{
+    const d = await (await fetch('/api/status')).json();
+    const dot = $('status-dot');
+    const tot = d.phases_total;
+    const done= d.phases_complete;
+    dot.className='status-dot '+(done===tot?'ok':done>0?'warn':'');
+    $('phase-count').textContent=`${done}/${tot} phases`;
+  }catch(_){}
+}, 12000);
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/*  BOOT                                                                  */
+/* ══════════════════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  initTopbar();
+  initBadges();
+  initOverview();
+  initBinary();
+  _chartInit['page-overview'] = true;
+  _chartInit['page-binary']   = true;
+});
+</script>
+</body>
+</html>

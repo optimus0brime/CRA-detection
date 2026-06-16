@@ -1,0 +1,48 @@
+{
+  "phase": 0,
+  "binary": "/home/rave/opt/proj/jop/modules/vuln-code/stack_bof",
+  "generated_at": "2026-06-16T05:05:12.078358+00:00",
+  "input_mode": "file",
+  "crashes_triaged": 0,
+  "static_patterns_found": 1,
+  "exploitable_found": 1,
+  "all_controlled_registers": [],
+  "all_memory_maps": [],
+  "runtime_env": {
+    "aslr_level": 2,
+    "pie_binary": false,
+    "stack_canary": false,
+    "nx_enabled": true,
+    "full_relro": false,
+    "partial_relro": false,
+    "cet_ibt": false,
+    "cet_shstk": false
+  },
+  "ret2win_targets": [],
+  "vulnerabilities": [
+    {
+      "vuln_id": "SP001",
+      "crash_input": null,
+      "input_hash": "static-analysis",
+      "vuln_type": "WRITABLE_GOT",
+      "write_primitive": "WRITABLE_GOT",
+      "controlled_offset": null,
+      "offset_via": null,
+      "exploitability": "MEDIUM",
+      "confidence": "HIGH",
+      "signal": "PREDICTED",
+      "fault_address": "0x4141414141414141",
+      "registers_at_crash": {},
+      "controlled_registers": [],
+      "stack_top": [],
+      "backtrace": [],
+      "memory_map": [],
+      "notes": "Partial RELRO: .got.plt at 0x402fe8 is writable at runtime; arbitrary write \u2192 GOT overwrite \u2192 code exec",
+      "gdb_error": "",
+      "static_analysis": true,
+      "in_function": "[binary-wide]",
+      "call_addr": "0x00402fe8",
+      "dangerous_func": ".got.plt"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+========================================================================
+  CRA DETECTION FRAMEWORK -- PHASE 0 VULNERABILITY REPORT
+========================================================================
+  Binary     : /home/rave/opt/proj/jop/modules/vuln-code/stack_bof
+  Generated  : 2026-06-14 03:10:58 UTC
+------------------------------------------------------------------------
+  RUNTIME ENVIRONMENT
+    ASLR level   : 2
+    PIE binary   : False
+    Stack canary : False
+    NX           : False
+    Full RELRO   : False
+------------------------------------------------------------------------
+  RESULTS
+    Crashes triaged   : 0
+    Exploitable found : 0
+    Controlled regs   : ['none detected']
+========================================================================
+
+========================================================================
+  END OF REPORT
+========================================================================

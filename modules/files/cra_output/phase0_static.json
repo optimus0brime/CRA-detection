@@ -1,0 +1,495 @@
+{
+  "binary": "/home/rave/opt/proj/jop/modules/vuln-code/stack_bof",
+  "generated_at": "2026-06-16T05:05:11.632541+00:00",
+  "metadata": {
+    "file_info": "/home/rave/opt/proj/jop/modules/vuln-code/stack_bof: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=b987780847f7b641a6082dfa27e3a110ae562418, for GNU/Linux 3.2.0, not stripped",
+    "arch": "x86-64",
+    "bits": 64,
+    "type": "ELF",
+    "pie": false,
+    "canary": false,
+    "nx": true,
+    "relro": "none",
+    "stripped": false,
+    "build_id": "b987780847f7b641a6082dfa27e3a110ae562418",
+    "compiler": "",
+    "interp": "",
+    "aslr_level": 2
+  },
+  "sections": [
+    {
+      "name": ".note.gnu.build-id",
+      "addr": "0x400318",
+      "size": 36,
+      "flags": "A"
+    },
+    {
+      "name": ".init",
+      "addr": "0x40033c",
+      "size": 27,
+      "flags": "AX"
+    },
+    {
+      "name": ".plt",
+      "addr": "0x400360",
+      "size": 80,
+      "flags": "AX"
+    },
+    {
+      "name": ".text",
+      "addr": "0x4003b0",
+      "size": 363,
+      "flags": "AX"
+    },
+    {
+      "name": ".fini",
+      "addr": "0x40051c",
+      "size": 13,
+      "flags": "AX"
+    },
+    {
+      "name": ".interp",
+      "addr": "0x401000",
+      "size": 28,
+      "flags": "A"
+    },
+    {
+      "name": ".gnu.hash",
+      "addr": "0x401020",
+      "size": 28,
+      "flags": "A"
+    },
+    {
+      "name": ".dynsym",
+      "addr": "0x401040",
+      "size": 168,
+      "flags": "A"
+    },
+    {
+      "name": ".dynstr",
+      "addr": "0x4010e8",
+      "size": 91,
+      "flags": "A"
+    },
+    {
+      "name": ".gnu.version",
+      "addr": "0x401144",
+      "size": 14,
+      "flags": "A"
+    },
+    {
+      "name": ".gnu.version_r",
+      "addr": "0x401158",
+      "size": 48,
+      "flags": "A"
+    },
+    {
+      "name": ".rela.dyn",
+      "addr": "0x401188",
+      "size": 48,
+      "flags": "A"
+    },
+    {
+      "name": ".rela.plt",
+      "addr": "0x4011b8",
+      "size": 96,
+      "flags": "AI"
+    },
+    {
+      "name": ".rodata",
+      "addr": "0x401218",
+      "size": 122,
+      "flags": "A"
+    },
+    {
+      "name": ".eh_frame_hdr",
+      "addr": "0x401294",
+      "size": 60,
+      "flags": "A"
+    },
+    {
+      "name": ".eh_frame",
+      "addr": "0x4012d0",
+      "size": 204,
+      "flags": "A"
+    },
+    {
+      "name": ".note.gnu.property",
+      "addr": "0x4013a0",
+      "size": 64,
+      "flags": "A"
+    },
+    {
+      "name": ".note.ABI-tag",
+      "addr": "0x4013e0",
+      "size": 32,
+      "flags": "A"
+    },
+    {
+      "name": ".init_array",
+      "addr": "0x402df8",
+      "size": 8,
+      "flags": "WA"
+    },
+    {
+      "name": ".fini_array",
+      "addr": "0x402e00",
+      "size": 8,
+      "flags": "WA"
+    },
+    {
+      "name": ".dynamic",
+      "addr": "0x402e08",
+      "size": 464,
+      "flags": "WA"
+    },
+    {
+      "name": ".got",
+      "addr": "0x402fd8",
+      "size": 16,
+      "flags": "WA"
+    },
+    {
+      "name": ".got.plt",
+      "addr": "0x402fe8",
+      "size": 56,
+      "flags": "WA"
+    },
+    {
+      "name": ".data",
+      "addr": "0x403020",
+      "size": 4,
+      "flags": "WA"
+    },
+    {
+      "name": ".bss",
+      "addr": "0x403024",
+      "size": 4,
+      "flags": "WA"
+    },
+    {
+      "name": ".comment",
+      "addr": "0x0",
+      "size": 46,
+      "flags": "MS"
+    },
+    {
+      "name": ".annobin.notes",
+      "addr": "0x0",
+      "size": 335,
+      "flags": "MS"
+    },
+    {
+      "name": ".gnu.build.attributes",
+      "addr": "0x405028",
+      "size": 324,
+      "flags": "0"
+    },
+    {
+      "name": ".symtab",
+      "addr": "0x0",
+      "size": 936,
+      "flags": "30"
+    },
+    {
+      "name": ".strtab",
+      "addr": "0x0",
+      "size": 497,
+      "flags": "0"
+    },
+    {
+      "name": ".shstrtab",
+      "addr": "0x0",
+      "size": 315,
+      "flags": "0"
+    }
+  ],
+  "functions": {
+    "puts@plt-0x10": {
+      "addr": "0x00000000",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [
+        "rax"
+      ],
+      "calls": [],
+      "dangerous": false
+    },
+    "puts@plt": {
+      "addr": "0x00000000",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [],
+      "calls": [],
+      "dangerous": false
+    },
+    "system@plt": {
+      "addr": "0x00000000",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [],
+      "calls": [],
+      "dangerous": false
+    },
+    "printf@plt": {
+      "addr": "0x00000000",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [],
+      "calls": [],
+      "dangerous": false
+    },
+    "gets@plt": {
+      "addr": "0x00000000",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [],
+      "calls": [],
+      "dangerous": false
+    },
+    "_start": {
+      "addr": "0x004003b0",
+      "size": 38,
+      "frame_size": 0,
+      "regs_used": [
+        "ebp",
+        "ecx",
+        "r9",
+        "rax",
+        "rdi",
+        "rdx",
+        "rsi",
+        "rsp"
+      ],
+      "calls": [],
+      "dangerous": false
+    },
+    "deregister_tm_clones": {
+      "addr": "0x004003f0",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [
+        "eax",
+        "edi",
+        "rax"
+      ],
+      "calls": [],
+      "dangerous": false
+    },
+    "register_tm_clones": {
+      "addr": "0x00400420",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [
+        "eax",
+        "edi",
+        "esi",
+        "rax",
+        "rsi"
+      ],
+      "calls": [],
+      "dangerous": false
+    },
+    "frame_dummy": {
+      "addr": "0x00400490",
+      "size": 0,
+      "frame_size": 0,
+      "regs_used": [],
+      "calls": [],
+      "dangerous": false
+    },
+    "secret": {
+      "addr": "0x00400496",
+      "size": 27,
+      "frame_size": 0,
+      "regs_used": [
+        "edi",
+        "rbp",
+        "rsp"
+      ],
+      "calls": [],
+      "dangerous": false
+    },
+    "vuln": {
+      "addr": "0x004004b1",
+      "size": 60,
+      "frame_size": 64,
+      "regs_used": [
+        "eax",
+        "edi",
+        "rax",
+        "rbp",
+        "rdi",
+        "rsi",
+        "rsp"
+      ],
+      "calls": [],
+      "dangerous": false
+    },
+    "main": {
+      "addr": "0x004004ed",
+      "size": 46,
+      "frame_size": 0,
+      "regs_used": [
+        "eax",
+        "edi",
+        "esi",
+        "rbp",
+        "rsp"
+      ],
+      "calls": [],
+      "dangerous": false
+    }
+  },
+  "win_functions": [],
+  "patterns": [
+    {
+      "id": "P001",
+      "call_addr": 4206568,
+      "func_name": ".got.plt",
+      "in_function": "[binary-wide]",
+      "type": "WRITABLE_GOT",
+      "severity": "MEDIUM",
+      "cwe": "CWE-119",
+      "reason": "Partial RELRO: .got.plt at 0x402fe8 is writable at runtime; arbitrary write \u2192 GOT overwrite \u2192 code exec",
+      "buf_size": 56,
+      "frame_size": null,
+      "rip_offset": null,
+      "input_hint": "any",
+      "confidence": "HIGH",
+      "got_addr": "0x402fe8",
+      "got_size": 56
+    }
+  ],
+  "strings": [
+    {
+      "offset": 961,
+      "value": "PTE1"
+    },
+    {
+      "offset": 1013,
+      "value": "H=(0@"
+    },
+    {
+      "offset": 4096,
+      "value": "/lib64/ld-linux-x86-64.so.2"
+    },
+    {
+      "offset": 4329,
+      "value": "puts"
+    },
+    {
+      "offset": 4334,
+      "value": "gets"
+    },
+    {
+      "offset": 4339,
+      "value": "system"
+    },
+    {
+      "offset": 4346,
+      "value": "__libc_start_main"
+    },
+    {
+      "offset": 4364,
+      "value": "printf"
+    },
+    {
+      "offset": 4371,
+      "value": "libc.so.6"
+    },
+    {
+      "offset": 4381,
+      "value": "GLIBC_2.2.5"
+    },
+    {
+      "offset": 4393,
+      "value": "GLIBC_2.34"
+    },
+    {
+      "offset": 4404,
+      "value": "__gmon_start__"
+    },
+    {
+      "offset": 4648,
+      "value": "[!] secret() called "
+    },
+    {
+      "offset": 4671,
+      "value": "shell spawned"
+    },
+    {
+      "offset": 4686,
+      "value": "/bin/sh"
+    },
+    {
+      "offset": 4694,
+      "value": "Input: "
+    },
+    {
+      "offset": 4702,
+      "value": "You said: %s"
+    },
+    {
+      "offset": 4716,
+      "value": "=== Stack BOF Demo ==="
+    },
+    {
+      "offset": 4739,
+      "value": "secret() @ %p"
+    },
+    {
+      "offset": 4911,
+      "value": ";*3$\""
+    },
+    {
+      "offset": 8228,
+      "value": "GCC: (GNU) 15.2.1 20260123 (Red Hat 15.2.1-7)"
+    },
+    {
+      "offset": 8274,
+      "value": "AV:4p1299"
+    },
+    {
+      "offset": 8284,
+      "value": "RV:running gcc 15.2.1 20260123"
+    },
+    {
+      "offset": 8315,
+      "value": "BV:annobin gcc 15.2.1 20260123"
+    },
+    {
+      "offset": 8346,
+      "value": "GW:0x7d60562 ../sysdeps/x86/abi-note.c"
+    },
+    {
+      "offset": 8385,
+      "value": "SP:3"
+    },
+    {
+      "offset": 8390,
+      "value": "SC:1"
+    },
+    {
+      "offset": 8395,
+      "value": "CF:8 ../sysdeps/x86/abi-note.c"
+    },
+    {
+      "offset": 8426,
+      "value": "FL:0 ../sysdeps/x86/abi-note.c"
+    },
+    {
+      "offset": 8457,
+      "value": "GA:1"
+    }
+  ],
+  "input_mode_hint": "arg",
+  "dynamic_imports": [
+    "gets",
+    "__gmon_start__",
+    "__libc_start_main",
+    "printf",
+    "puts",
+    "system"
+  ]
+}
